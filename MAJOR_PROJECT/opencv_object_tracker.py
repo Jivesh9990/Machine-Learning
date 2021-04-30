@@ -6,7 +6,9 @@ import imutils
 import time
 import cv2
 import pyautogui
-
+import pydirectinput
+from directkeys import right_pressed,left_pressed
+from directkeys import PressKey, ReleaseKey
 
 video=None
 tracker_choice='csrt'
@@ -31,23 +33,26 @@ if not video:
 # otherwise, grab a reference to the video file
 else:
     vs = cv2.VideoCapture(video)
+    height, width = (
+    int(vs.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+    int(vs.get(cv2.CAP_PROP_FRAME_WIDTH)),)
+    fps = vs.get(cv2.CAP_PROP_FPS)
+    print(height,width)
 # initialize the FPS throughput estimator
 fps = None
 
 
-# cv2.namedWindow('image',cv2.WINDOW_NORMAL)
-# cv2.resizeWindow('image', 800,600)
-# cv2.namedWindow("image", 0)
-# cv2.resizeWindow("image", 1280, 720)
 
 while True:
     # grab the current frame, then handle if we are using a
     # VideoStream or VideoCapture object
+    
     frame = vs.read()
     frame = frame[1] if video else frame
     # check to see if we have reached the end of the stream
+    frame = cv2.line(frame,(320,0),(320,500),(255,255,0),3)
     
-
+    
     if frame is None:
         break
     # resize the frame (so we can process it faster) and grab the
@@ -56,47 +61,31 @@ while True:
     (H, W) = frame.shape[:2]
 
 
-
-    # font = cv2.FONT_HERSHEY_SIMPLEX
-    # frame = cv2.line(frame,(200,0),(200,500),(255,255,0),3)
-    # frame = cv2.line(frame,(400,0),(400,500),(255,255,0),3)
-    # frame = cv2.line(frame,(200,160),(400,160),(255,255,0),3)
-    # frame = cv2.line(frame,(200,325),(400,325),(255,255,0),3)
-    # cv2.putText(frame,'Left',(75,270), font, 1,(255,255,255),2,cv2.LINE_AA)
-    # cv2.putText(frame,'forward',(240,80), font, 1,(255,255,255),2,cv2.LINE_AA)
-    # cv2.putText(frame,'Neutral',(240,260), font, 1,(255,255,255),2,cv2.LINE_AA)
-    # cv2.putText(frame,'Backward',(230,420), font, 1,(255,255,255),2,cv2.LINE_AA)
-    # cv2.putText(frame,'Right',(480,270), font, 1,(255,255,255),2,cv2.LINE_AA)
     
     if initBB is not None:
         # grab the new bounding box coordinates of the object
         (success, box) = tracker.update(frame)
         # check to see if the tracking was a success
-
+        
         if success:
             (x, y, w, h) = [int(v) for v in box]
             cv2.rectangle(frame, (x, y), (x + w, y + h),(0, 255, 0), 2)
-            x2=x+y
+            x2=x+w
             y2=y+h
-            
-            if x2<=220:
-                pyautogui.press('a')
-                cv2.putText(frame,'LEFT',(10,10),cv2.FONT_HERSHEY_COMPLEX_SMALL,1,(255,0,0),1)
-            elif x>=260:
-                pyautogui.press('d')
-                cv2.putText(frame,'RIGHT',(10,10),cv2.FONT_HERSHEY_COMPLEX_SMALL,1,(0,255,0),1)
+            print(x2,y2)
+            if x2<=210:
+                PressKey(left_pressed)
+                print('LEFT')
+                cv2.putText(frame,'LEFT',(10,40),cv2.FONT_HERSHEY_COMPLEX_SMALL,1,(255,0,0),1)
+            elif x>=280:
+                PressKey(right_pressed)
+                print('RIGHT')
+                cv2.putText(frame,'RIGHT',(400,40),cv2.FONT_HERSHEY_COMPLEX_SMALL,1,(0,255,0),1)
             else:
-                print('NUETRAL')
-
+                cv2.putText(frame,'N',(100,40),cv2.FONT_HERSHEY_COMPLEX_SMALL,1,(0,255,0),1)
+                
             # pyautogui.press('w')
 
-        #while True:
-            
-            # if cv2.waitKey(1) == ord('q'):
-            # 	break
-
-        # cap.release()
-        # cv2.destroyAllWindows()
         # update the FPS counter
         fps.update()
         fps.stop()
@@ -116,18 +105,21 @@ while True:
 
 
     cv2.imshow("image", frame)
-    key = cv2.waitKey(1) & 0xFF
+    key = cv2.waitKey(1)
     # if the 's' key is selected, we are going to "select" a bounding
     # box to track
+
     if key == ord("s"):
         # select the bounding box of the object we want to track (make
         # sure you press ENTER or SPACE after selecting the ROI)
         initBB = cv2.selectROI("image", frame, fromCenter=False,showCrosshair=True)
+        cv2.destroyWindow("image")
+
         # start OpenCV object tracker using the supplied bounding box
         # coordinates, then start the FPS throughput estimator as well
         tracker.init(frame, initBB)
         fps = FPS().start()
-
+        print('Tracker Created')
 
 
 
